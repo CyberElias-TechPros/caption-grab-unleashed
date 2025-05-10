@@ -7,12 +7,12 @@ interface PlatformBadgeProps {
 }
 
 const PlatformBadge: React.FC<PlatformBadgeProps> = ({ platform }) => {
-  const badgeClasses = {
-    youtube: "platform-badge-youtube",
-    facebook: "platform-badge-facebook",
-    twitter: "platform-badge-twitter",
-    linkedin: "platform-badge-linkedin",
-    unsupported: "platform-badge-unsupported"
+  const badgeColors = {
+    youtube: "bg-red-100 text-red-800 border-red-200",
+    facebook: "bg-blue-100 text-blue-800 border-blue-200",
+    twitter: "bg-sky-100 text-sky-800 border-sky-200",
+    linkedin: "bg-blue-100 text-blue-800 border-blue-200",
+    unsupported: "bg-gray-100 text-gray-800 border-gray-200"
   };
   
   const platformLabels = {
@@ -24,7 +24,7 @@ const PlatformBadge: React.FC<PlatformBadgeProps> = ({ platform }) => {
   };
   
   return (
-    <span className={`platform-badge ${badgeClasses[platform]}`}>
+    <span className={`inline-flex items-center text-xs font-medium px-2 py-1 rounded-full border ${badgeColors[platform]}`}>
       {platformLabels[platform]}
     </span>
   );

@@ -154,10 +154,10 @@ const VideoForm: React.FC<VideoFormProps> = ({ onFetchCaptions, onFetchTracks, i
           </div>
           
           {!platformSupport.supported && url && platform !== 'unsupported' && (
-            <Alert variant="warning" className="animate-fade-in">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Platform Limitation</AlertTitle>
-              <AlertDescription>
+            <Alert className="animate-fade-in bg-amber-50 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertTitle className="text-amber-800">Platform Limitation</AlertTitle>
+              <AlertDescription className="text-amber-700">
                 {platformSupport.message}
               </AlertDescription>
             </Alert>
