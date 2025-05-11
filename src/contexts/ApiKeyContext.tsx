@@ -27,6 +27,7 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [apiKeySettings, setApiKeySettings] = useState<ApiKeySettings>(defaultSettings);
   const [customYoutubeApiKey, setCustomYoutubeApiKey] = useState<string>('');
   const [currentKeyIndex, setCurrentKeyIndex] = useState(0);
+  const [defaultApiKey, setDefaultApiKey] = useState(DEFAULT_YOUTUBE_API_KEYS[0]);
 
   // Load settings from localStorage on initial render
   useEffect(() => {
@@ -44,6 +45,11 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (storedYoutubeKey) {
       setCustomYoutubeApiKey(storedYoutubeKey);
     }
+    
+    // Initialize with a random default key for better distribution
+    const randomIndex = Math.floor(Math.random() * DEFAULT_YOUTUBE_API_KEYS.length);
+    setCurrentKeyIndex(randomIndex);
+    setDefaultApiKey(DEFAULT_YOUTUBE_API_KEYS[randomIndex]);
   }, []);
 
   // Save settings to localStorage when they change
@@ -58,18 +64,22 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [customYoutubeApiKey]);
 
-  // Rotate through default keys to distribute quota usage
-  const getDefaultKey = () => {
-    const key = DEFAULT_YOUTUBE_API_KEYS[currentKeyIndex];
+  // Rotate default API key when currentKeyIndex changes
+  useEffect(() => {
+    setDefaultApiKey(DEFAULT_YOUTUBE_API_KEYS[currentKeyIndex]);
+  }, [currentKeyIndex]);
+
+  // Function to get and rotate to the next default key
+  const rotateDefaultKey = () => {
     setCurrentKeyIndex((prevIndex) => 
       (prevIndex + 1) % DEFAULT_YOUTUBE_API_KEYS.length
     );
-    return key;
   };
 
+  // Determine the actual key to use
   const youtubeApiKey = apiKeySettings.useCustomKeys && customYoutubeApiKey 
     ? customYoutubeApiKey 
-    : getDefaultKey();
+    : defaultApiKey;
   
   const isUsingDefaultKey = !apiKeySettings.useCustomKeys || !customYoutubeApiKey;
 
@@ -81,6 +91,8 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setApiKeySettings(defaultSettings);
     setCustomYoutubeApiKey('');
     localStorage.removeItem(LOCAL_STORAGE_KEYS.YOUTUBE_API_KEY);
+    // Also rotate to a different default key
+    rotateDefaultKey();
   };
 
   return (
