@@ -15,6 +15,13 @@ const QuotaDisplay: React.FC<QuotaDisplayProps> = ({ used, total }) => {
   const percentUsed = (used / total) * 100;
   const remaining = total - used;
   
+  // Determine the appropriate color based on percentage used
+  const getProgressColor = () => {
+    if (percentUsed > 90) return "bg-red-500";
+    if (percentUsed > 70) return "bg-amber-500";
+    return "bg-emerald-500";
+  };
+  
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 mt-4">
       <div className="flex justify-between items-start mb-2">
@@ -55,16 +62,12 @@ const QuotaDisplay: React.FC<QuotaDisplayProps> = ({ used, total }) => {
           ~{remaining} operations remaining today
         </span>
       </div>
-      <Progress 
-        value={percentUsed} 
-        className="h-2" 
-        // Add color based on percentage
-        indicatorClassName={
-          percentUsed > 90 ? "bg-red-500" : 
-          percentUsed > 70 ? "bg-amber-500" : 
-          "bg-emerald-500"
-        }
-      />
+      <div className="relative w-full">
+        <Progress 
+          value={percentUsed} 
+          className={`h-2 ${getProgressColor()}`}
+        />
+      </div>
     </div>
   );
 };
