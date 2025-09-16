@@ -187,40 +187,182 @@ export async function fetchCaptions(
   apiKey: string
 ): Promise<string> {
   try {
-    // For now, we'll simulate caption fetching since actual caption download
-    // requires OAuth 2.0 authentication (beyond API key)
-    // In a production app, this would call a server-side endpoint with proper auth
-
-    // Get video details to extract title
-    const videoResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
-    );
+    // First, get available caption tracks
+    const captionTracks = await fetchCaptionTracks(videoId, apiKey);
     
-    const videoData = await videoResponse.json();
-    
-    if (videoResponse.status !== 200 || videoData.error) {
-      const error = videoData.error || { message: "Failed to fetch video details" };
-      throw new Error(`YouTube API error: ${error.message}`);
+    if (captionTracks.length === 0) {
+      throw new Error("No captions available for this video");
     }
     
-    if (!videoData.items || videoData.items.length === 0) {
-      throw new Error("Video not found");
+    // Find the best matching caption track
+    let selectedTrack = captionTracks.find(track => track.languageCode === language);
+    
+    // If exact language not found, try to find English or the first available
+    if (!selectedTrack) {
+      selectedTrack = captionTracks.find(track => track.languageCode === "en") || captionTracks[0];
     }
-
-    const videoTitle = videoData.items[0].snippet.title;
     
-    // For demonstration, we'll generate a synthetic caption based on video title
-    // In a real app, you'd fetch the actual captions using a server-side endpoint
-    const simulatedCaption = generateSimulatedCaptions(videoTitle, language);
-    
-    // Add a small delay to simulate network request
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    return simulatedCaption;
+    // Try to fetch the actual transcript using YouTube's transcript endpoint
+    try {
+      const transcript = await fetchYouTubeTranscript(videoId, selectedTrack.languageCode);
+      return transcript;
+    } catch (transcriptError) {
+      console.warn("Failed to fetch transcript, falling back to API method:", transcriptError);
+      
+      // Fallback: Try to get transcript via the official API
+      // Note: This requires OAuth, so we'll try a workaround
+      try {
+        const officialTranscript = await fetchOfficialCaptions(selectedTrack.id, apiKey);
+        return officialTranscript;
+      } catch (apiError) {
+        console.warn("Official API method failed:", apiError);
+        throw new Error("Unable to fetch captions. This video may not have publicly available captions or may require special permissions.");
+      }
+    }
   } catch (error) {
     console.error("Error fetching captions:", error);
     throw error;
   }
+}
+
+/**
+ * Fetch YouTube transcript using the transcript endpoint
+ * @param videoId - The YouTube video ID
+ * @param languageCode - Language code for the transcript
+ * @returns Promise with full transcript text
+ */
+async function fetchYouTubeTranscript(videoId: string, languageCode: string): Promise<string> {
+  // Try multiple transcript URL patterns
+  const transcriptUrls = [
+    `https://www.youtube.com/api/timedtext?lang=${languageCode}&v=${videoId}&fmt=srv3`,
+    `https://www.youtube.com/api/timedtext?lang=${languageCode}&v=${videoId}&fmt=vtt`,
+    `https://www.youtube.com/api/timedtext?lang=${languageCode}&v=${videoId}`,
+    // Auto-generated captions
+    `https://www.youtube.com/api/timedtext?lang=${languageCode}&v=${videoId}&kind=asr&fmt=srv3`,
+    `https://www.youtube.com/api/timedtext?lang=${languageCode}&v=${videoId}&kind=asr&fmt=vtt`,
+  ];
+  
+  for (const url of transcriptUrls) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.text();
+        
+        if (data && data.length > 100) { // Ensure we got actual content
+          return parseTranscriptData(data, url.includes('fmt=vtt'));
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch from ${url}:`, error);
+      continue;
+    }
+  }
+  
+  throw new Error("Could not fetch transcript from any available source");
+}
+
+/**
+ * Parse transcript data from different formats
+ * @param data - Raw transcript data
+ * @param isVTT - Whether the data is in VTT format
+ * @returns Formatted transcript text
+ */
+function parseTranscriptData(data: string, isVTT: boolean = false): string {
+  try {
+    if (isVTT) {
+      // Parse VTT format
+      const lines = data.split('\n');
+      let transcript = '';
+      let isTextLine = false;
+      
+      for (const line of lines) {
+        if (line.includes('-->')) {
+          isTextLine = true;
+          continue;
+        }
+        
+        if (isTextLine && line.trim() && !line.startsWith('WEBVTT') && !line.includes('-->')) {
+          // Clean up HTML tags and decode entities
+          const cleanLine = line
+            .replace(/<[^>]*>/g, '') // Remove HTML tags
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .trim();
+          
+          if (cleanLine) {
+            transcript += cleanLine + ' ';
+          }
+          isTextLine = false;
+        }
+      }
+      
+      return transcript.trim();
+    } else {
+      // Parse SRV3/XML format
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(data, 'text/xml');
+      const textElements = xmlDoc.getElementsByTagName('text');
+      
+      let transcript = '';
+      
+      for (let i = 0; i < textElements.length; i++) {
+        const element = textElements[i];
+        const text = element.textContent || '';
+        
+        if (text.trim()) {
+          // Clean up and decode the text
+          const cleanText = text
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .trim();
+          
+          transcript += cleanText + ' ';
+        }
+      }
+      
+      return transcript.trim();
+    }
+  } catch (error) {
+    console.error('Error parsing transcript data:', error);
+    throw new Error('Failed to parse transcript data');
+  }
+}
+
+/**
+ * Fallback method to fetch captions using official API
+ * @param captionId - The caption track ID
+ * @param apiKey - YouTube API key
+ * @returns Promise with caption text
+ */
+async function fetchOfficialCaptions(captionId: string, apiKey: string): Promise<string> {
+  // This requires OAuth 2.0, so it will likely fail with just an API key
+  // But we'll try anyway as a fallback
+  const response = await fetch(
+    `https://www.googleapis.com/youtube/v3/captions/${captionId}?key=${apiKey}`,
+    {
+      headers: {
+        'Accept': 'text/vtt'
+      }
+    }
+  );
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch official captions: ${response.status} ${response.statusText}`);
+  }
+  
+  const vttData = await response.text();
+  return parseTranscriptData(vttData, true);
 }
 
 /**
@@ -245,37 +387,6 @@ export function downloadTextFile(text: string, filename: string): void {
   }, 100);
 }
 
-/**
- * Helper function to generate simulated captions
- * @param videoTitle - The title of the video
- * @param language - The language code
- * @returns Generated caption text
- */
-function generateSimulatedCaptions(videoTitle: string, language: string): string {
-  const sentences = [
-    "Welcome to this video.",
-    `This video is titled "${videoTitle}".`,
-    "We're going to explore some interesting concepts today.",
-    "Thank you for watching this content.",
-    "If you enjoyed this video, please like and subscribe.",
-    "Don't forget to check out our other videos on similar topics.",
-    "This is the end of our presentation.",
-    "Feel free to leave comments below with your thoughts.",
-    "We appreciate your viewership and support.",
-    "Stay tuned for more content coming soon!"
-  ];
-  
-  // Convert timestamps to SRT format (00:00:00,000)
-  let captions = '';
-  sentences.forEach((sentence, index) => {
-    const startMinutes = Math.floor(index / 2);
-    const endMinutes = Math.floor((index + 1) / 2);
-    
-    captions += `[${String(startMinutes).padStart(2, '0')}:00:00] ${sentence}\n`;
-  });
-  
-  return captions;
-}
 
 /**
  * Function to handle YouTube API errors
