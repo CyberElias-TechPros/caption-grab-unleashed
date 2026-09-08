@@ -1,73 +1,119 @@
-# Welcome to your Lovable project
+# CaptionGrab — Free YouTube Transcript & Caption Extractor
 
-## Project info
+Paste any YouTube link and get a clean, timestamped transcript you can **search, read, copy and
+export** (TXT, SRT, VTT, JSON). Free forever, no sign-up, no API keys.
 
-**URL**: https://lovable.dev/projects/39cbc85e-b8d7-4db8-9f7a-8159d75a5f51
+![CaptionGrab](public/og-image.svg)
 
-## How can I edit this code?
+## ✨ Features
 
-There are several ways of editing your application.
+- **One-link extraction** — watch URLs, Shorts, live replays, embeds, `youtu.be` links, bare ids
+- **True timestamps** — click any line to jump the video to that moment
+- **In-transcript search** with match highlighting and counts
+- **Export anywhere** — plain text, timestamped text, SubRip (`.srt`), WebVTT (`.vtt`), JSON
+- **170+ languages** — every caption track listed, with smart auto-translate fallback
+- **Read & watch together** — side-by-side player plus a distraction-free reading mode
+- **Private local history** — reopen past extractions offline; nothing ever leaves your browser
+- **Dark / light themes**, fully responsive, keyboard- and screen-reader-friendly
 
-**Use Lovable**
+## 🏗️ Architecture
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/39cbc85e-b8d7-4db8-9f7a-8159d75a5f51) and start prompting.
+```
+Browser (React + Vite + Tailwind, deployed on Vercel)
+        │  GET /api/video?id=…  ·  GET /api/transcript?id=…&lang=…
+        ▼
+Cloudflare Worker API  (worker/, edge-cached, rate-limited, zero secrets)
+        │  Innertube player API + timedtext (server-side, no CORS issues)
+        ▼
+      YouTube
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+| Concern | Choice | Why |
+|---|---|---|
+| Frontend | React 18, Vite, Tailwind, shadcn/ui → **Vercel** | Fast, typed, accessible component base |
+| API | **Cloudflare Workers** | Server-side transcript fetch (browsers are CORS-blocked), edge cache, no servers to run |
+| Secrets | None required | No YouTube Data API key, no OAuth, nothing to leak |
+| Storage | Browser `localStorage` only | History & settings stay on-device; no database needed |
 
-**Use your preferred IDE**
+> **Why does a backend exist at all?** Browsers cannot fetch YouTube transcripts directly
+> (CORS), and the YouTube Data API's `captions.download` endpoint requires OAuth — an API key
+> alone can never download captions. The Worker resolves caption tracks and downloads
+> transcripts server-side, which is the only architecture that actually works. See
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Quick start
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**Prerequisites:** Node.js 20+, npm. For the API: a (free) Cloudflare account + `wrangler`.
 
-Follow these steps:
+```bash
+# 1. Install frontend dependencies
+npm install
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 2. Start the Worker API (http://127.0.0.1:8787)
+npm run worker:dev
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 3. In another terminal, start the frontend (http://localhost:8080)
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The Vite dev server proxies `/api/*` to the Worker automatically — no env vars needed. Copy
+[`.env.example`](.env.example) to `.env` only if you want to point at a deployed Worker instead.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🧪 Checks
 
-**Use GitHub Codespaces**
+```bash
+npm run typecheck   # TypeScript project references
+npm run lint        # ESLint
+npm run test        # Vitest unit tests (URL parsing, formatters, exporters)
+npm run build       # Production frontend build → dist/
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## ☁️ Deployment
 
-## What technologies are used for this project?
+Full walkthrough: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
-This project is built with:
+1. **API:** `cd worker && npx wrangler login && npm run deploy` → note the
+   `https://captiongrab-api.<subdomain>.workers.dev` URL.
+2. **Frontend (Vercel):** import the repo, set env var
+   `API_WORKER_URL=https://captiongrab-api.<subdomain>.workers.dev`, deploy.
+   `vercel.json` rewrites same-origin `/api/*` to the Worker and adds security headers.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📁 Repository map
 
-## How can I deploy this project?
+```
+├── src/
+│   ├── components/        # Extractor, CaptionDisplay, HistoryPanel, Header/Footer, landing/*
+│   ├── contexts/          # SettingsContext (local preferences, no secrets)
+│   ├── hooks/             # useCaptionHistory, useReveal, use-mobile, use-toast
+│   ├── lib/               # api.ts (typed client) · youtube.ts (URL parsing) · format.ts (exporters)
+│   ├── pages/             # Index, About, Privacy, Terms, NotFound
+│   └── config/apiConfig.ts
+├── worker/src/index.ts    # Cloudflare Worker API (video + transcript routes)
+├── worker/wrangler.toml   # Worker config (no bindings/secrets required)
+├── docs/                  # ARCHITECTURE.md · DEPLOYMENT.md
+├── vercel.json            # Rewrites (/api → Worker, SPA fallback) + security headers
+└── public/                # favicon, og-image, sitemap.xml, robots.txt
+```
 
-Simply open [Lovable](https://lovable.dev/projects/39cbc85e-b8d7-4db8-9f7a-8159d75a5f51) and click on Share -> Publish.
+## 🔒 Security & privacy
 
-## Can I connect a custom domain to my Lovable project?
+- No API keys ship in the client — the exposed keys from the old version were removed.
+- `vercel.json` ships `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and a
+  restrictive `Permissions-Policy`.
+- The Worker validates video ids, rate-limits per IP, sets CORS headers and never logs content.
+- History and settings live in `localStorage` only. See [Privacy Policy](/privacy) in-app.
 
-Yes, you can!
+## ⚖️ Fair use
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Transcripts belong to the video's creator. Short quotes with attribution are usually fine;
+republishing full transcripts without permission is not. The app reminds users of this on every
+transcript. CaptionGrab is not affiliated with YouTube or Google.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🤝 Contributing
+
+Issues and PRs welcome. Please run `npm run typecheck && npm run lint && npm run test` before
+opening a PR.
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
