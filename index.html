@@ -1,27 +1,57 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CaptionGrab - Free Video Caption Extractor</title>
-    <meta name="description" content="Extract video captions from YouTube, Facebook, Twitter, and LinkedIn videos for free. No account needed." />
+    <title>CaptionGrab — Free YouTube Transcript & Caption Extractor</title>
+    <meta
+      name="description"
+      content="Extract transcripts and captions from any YouTube video in seconds. Free, no sign-up, with timestamps, search, and SRT/VTT/TXT export."
+    />
     <meta name="author" content="CaptionGrab" />
+    <meta name="theme-color" content="#070a18" />
+    <link rel="canonical" href="https://captiongrab.app/" />
 
-    <meta property="og:title" content="CaptionGrab - Free Video Caption Extractor" />
-    <meta property="og:description" content="Extract video captions from YouTube, Facebook, Twitter, and LinkedIn videos for free. No account needed." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+    <meta property="og:title" content="CaptionGrab — Free YouTube Transcript & Caption Extractor" />
+    <meta
+      property="og:description"
+      content="Paste a YouTube link, get the full transcript with timestamps. Search it, copy it, export SRT/VTT/TXT. Free forever, no sign-up."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
+    <meta property="og:image" content="/og-image.svg" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@captionGrab" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="CaptionGrab — Free YouTube Transcript & Caption Extractor" />
+    <meta
+      name="twitter:description"
+      content="Paste a YouTube link, get the full transcript with timestamps. Free forever, no sign-up."
+    />
+    <meta name="twitter:image" content="/og-image.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "CaptionGrab",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Free YouTube transcript and caption extractor with timestamps, search and SRT/VTT/TXT export."
+      }
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

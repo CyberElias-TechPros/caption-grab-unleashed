@@ -1,0 +1,15 @@
+# CaptionGrab API — Cloudflare Worker configuration
+# See docs/DEPLOYMENT.md for the full deployment walkthrough.
+
+name = "captiongrab-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Zero-config deploy: no bindings, no secrets required.
+# Uncomment to lock the API to your domains (recommended for production):
+# [vars]
+# ALLOWED_ORIGINS = "https://captiongrab.app,https://www.captiongrab.app"
+# RATE_LIMIT_PER_MINUTE = "30"
+
+[dev]
+port = 8787
