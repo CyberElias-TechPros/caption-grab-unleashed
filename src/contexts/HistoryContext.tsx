@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { LIMITS, LOCAL_STORAGE_KEYS } from "@/config/apiConfig";
 import type { TranscriptResult, TranscriptSegment } from "@/lib/api";
 
@@ -19,12 +26,24 @@ export interface HistoryEntry {
   segments: TranscriptSegment[];
 }
 
+interface HistoryContextValue {
+  entries: HistoryEntry[];
+  count: number;
+  add: (result: TranscriptResult, thumbnail: string) => void;
+  remove: (id: string) => void;
+  clear: () => void;
+}
+
+const HistoryContext = createContext<HistoryContextValue | undefined>(undefined);
+
 function load(): HistoryEntry[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.HISTORY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as HistoryEntry[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Guard against entries written by an older shape.
+    return parsed.filter((e) => e && typeof e.id === "string" && Array.isArray(e.segments));
   } catch {
     return [];
   }
@@ -34,19 +53,25 @@ function persist(entries: HistoryEntry[]): void {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEYS.HISTORY, JSON.stringify(entries));
   } catch {
-    // Storage full or unavailable — drop oldest entries and retry once.
+    // Quota exceeded — halve and retry once, then give up quietly.
     try {
       localStorage.setItem(
         LOCAL_STORAGE_KEYS.HISTORY,
         JSON.stringify(entries.slice(0, Math.floor(entries.length / 2))),
       );
     } catch {
-      /* give up silently; history is a convenience, not critical */
+      /* history is a convenience, never critical */
     }
   }
 }
 
-export function useCaptionHistory() {
+/**
+ * Single source of truth for local extraction history.
+ *
+ * This is a context on purpose: the extractor writes to it and the history
+ * panel reads from it, and they must see the same list in the same render.
+ */
+export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
@@ -71,7 +96,6 @@ export function useCaptionHistory() {
         text: result.text.slice(0, LIMITS.HISTORY_PREVIEW_CHARS * 10),
         segments: result.segments,
       };
-      // De-duplicate same video+language, newest first, capped.
       const next = [
         entry,
         ...prev.filter((e) => !(e.videoId === entry.videoId && e.language === entry.language)),
@@ -98,5 +122,16 @@ export function useCaptionHistory() {
     }
   }, []);
 
-  return { entries, add, remove, clear, count: entries.length };
+  const value = useMemo<HistoryContextValue>(
+    () => ({ entries, count: entries.length, add, remove, clear }),
+    [entries, add, remove, clear],
+  );
+
+  return <HistoryContext.Provider value={value}>{children}</HistoryContext.Provider>;
+};
+
+export function useCaptionHistory(): HistoryContextValue {
+  const ctx = useContext(HistoryContext);
+  if (!ctx) throw new Error("useCaptionHistory must be used within a HistoryProvider");
+  return ctx;
 }

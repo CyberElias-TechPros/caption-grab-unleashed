@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assembleText,
+  LanguageUnavailableError,
   cleanText,
   decodeEntities,
   parseJson3,
@@ -127,5 +128,43 @@ describe("withTranslation / assembleText", () => {
         { start: 1, dur: 1, text: "world" },
       ]),
     ).toBe("Hello world");
+  });
+});
+
+describe("selectTrack — allowTranslate", () => {
+  const tracks: ResolvedTrack[] = [
+    { baseUrl: "u1", languageCode: "en", name: "English", kind: "manual", translatable: true },
+    { baseUrl: "u2", languageCode: "es", name: "Spanish", kind: "manual", translatable: true },
+    { baseUrl: "u3", languageCode: "fr", name: "French", kind: "auto", translatable: true },
+  ];
+
+  it("serves an exact match without translating, even when allowTranslate is false", () => {
+    const sel = selectTrack(tracks, "es", { allowTranslate: false });
+    expect(sel.servedLang).toBe("es");
+    expect(sel.translated).toBe(false);
+  });
+
+  it("falls back to English + translate by default when the language is missing", () => {
+    const sel = selectTrack(tracks, "de");
+    expect(sel.servedLang).toBe("en");
+    expect(sel.translated).toBe(true);
+  });
+
+  it("throws LanguageUnavailableError when translate is off and the language is missing", () => {
+    expect(() => selectTrack(tracks, "de", { allowTranslate: false })).toThrow(
+      LanguageUnavailableError,
+    );
+    try {
+      selectTrack(tracks, "de", { allowTranslate: false });
+    } catch (e) {
+      const err = e as LanguageUnavailableError;
+      expect(err.available).toEqual(["en", "es", "fr"]);
+      expect(err.message).toContain("de");
+    }
+  });
+
+  it("still throws a plain error when there are no tracks at all", () => {
+    expect(() => selectTrack([], "en", { allowTranslate: false })).toThrow();
+    expect(() => selectTrack([], "en", { allowTranslate: true })).toThrow();
   });
 });

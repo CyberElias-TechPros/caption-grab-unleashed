@@ -15,7 +15,24 @@ export default {
     extend: {
       fontFamily: {
         display: ['"Space Grotesk"', '"Inter"', "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ['"Instrument Serif"', "ui-serif", "Georgia", "Cambria", "serif"],
         sans: ['"Inter"', "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
+      fontSize: {
+        "display-xs": ["clamp(2rem, 5vw, 3rem)", { lineHeight: "1.02", letterSpacing: "-0.03em" }],
+        "display-sm": ["clamp(2.5rem, 7vw, 4.25rem)", { lineHeight: "0.98", letterSpacing: "-0.035em" }],
+        "display-md": ["clamp(3rem, 9vw, 6rem)", { lineHeight: "0.94", letterSpacing: "-0.04em" }],
+        "display-lg": ["clamp(3.5rem, 12vw, 8.5rem)", { lineHeight: "0.88", letterSpacing: "-0.045em" }],
+      },
+      spacing: {
+        13: "3.25rem",
+        15: "3.75rem",
+        18: "4.5rem",
+        22: "5.5rem",
+      },
+      letterSpacing: {
+        ultra: "0.34em",
       },
       colors: {
         border: "hsl(var(--border))",
@@ -65,21 +82,17 @@ export default {
           1: "hsl(var(--brand-1))",
           2: "hsl(var(--brand-2))",
           3: "hsl(var(--brand-3))",
-        },
-        // Legacy aliases (kept so older class names keep working).
-        caption: {
-          bg: "#f8f9ff",
-          primary: "#5b5bf0",
-          secondary: "#7c3aed",
-          accent: "#8b5cf6",
-          light: "#e5e7ff",
-          dark: "#2d3748",
+          4: "hsl(var(--brand-4))",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      transitionTimingFunction: {
+        cinematic: "cubic-bezier(0.22, 1, 0.36, 1)",
+        expo: "cubic-bezier(0.16, 1, 0.3, 1)",
       },
       keyframes: {
         "accordion-down": {
@@ -90,10 +103,55 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        drift: {
+          "0%, 100%": { transform: "translate3d(0,0,0) scale(1)" },
+          "33%": { transform: "translate3d(3%, -4%, 0) scale(1.08)" },
+          "66%": { transform: "translate3d(-4%, 3%, 0) scale(0.95)" },
+        },
+        "beam-sweep": {
+          "0%": { transform: "translateX(-120%) rotate(8deg)" },
+          "100%": { transform: "translateX(220%) rotate(8deg)" },
+        },
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
+        "grain-shift": {
+          "0%, 100%": { transform: "translate(0, 0)" },
+          "10%": { transform: "translate(-2%, -3%)" },
+          "30%": { transform: "translate(3%, -2%)" },
+          "50%": { transform: "translate(-1%, 3%)" },
+          "70%": { transform: "translate(2%, 2%)" },
+          "90%": { transform: "translate(-3%, 1%)" },
+        },
+        "pulse-ring": {
+          "0%": { transform: "scale(0.85)", opacity: "0.7" },
+          "70%": { transform: "scale(1.5)", opacity: "0" },
+          "100%": { transform: "scale(1.5)", opacity: "0" },
+        },
+        "caret-blink": {
+          "0%, 49%": { opacity: "1" },
+          "50%, 100%": { opacity: "0" },
+        },
+        "wave-bar": {
+          "0%, 100%": { transform: "scaleY(0.25)" },
+          "50%": { transform: "scaleY(1)" },
+        },
+        "orbit-spin": {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
+        },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
+        "accordion-down": "accordion-down 0.25s ease-out",
+        "accordion-up": "accordion-up 0.25s ease-out",
+        drift: "drift 22s ease-in-out infinite",
+        "beam-sweep": "beam-sweep 7s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+        marquee: "marquee var(--marquee-duration, 42s) linear infinite",
+        "grain-shift": "grain-shift 800ms steps(6) infinite",
+        "pulse-ring": "pulse-ring 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite",
+        "caret-blink": "caret-blink 1.05s step-end infinite",
+        "orbit-spin": "orbit-spin 26s linear infinite",
       },
     },
   },

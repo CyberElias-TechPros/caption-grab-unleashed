@@ -3,13 +3,16 @@ import { Clock3, FileText, History, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCaptionHistory, type HistoryEntry } from "@/hooks/useCaptionHistory";
+import { Reveal } from "@/components/motion/Reveal";
+import { useCaptionHistory, type HistoryEntry } from "@/contexts/HistoryContext";
 import type { TranscriptResult } from "@/lib/api";
 import { formatCount } from "@/lib/format";
 
 interface Props {
   onRestore: (result: TranscriptResult, thumbnail: string) => void;
 }
+
+const POSTER_FALLBACK = "/poster-fallback.svg";
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -44,14 +47,20 @@ const HistoryPanel: React.FC<Props> = ({ onRestore }) => {
   if (entries.length === 0) return null;
 
   return (
-    <section aria-label="Recent extractions" className="mt-10">
+    <Reveal as="section" y={22} aria-label="Recent extractions" className="mt-14">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-display text-lg font-bold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <History className="h-4 w-4" />
+        <h2 className="flex items-center gap-3 font-display text-lg font-bold tracking-tight">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-white"
+            style={{
+              backgroundImage: "linear-gradient(135deg, hsl(var(--brand-1)), hsl(var(--brand-3)))",
+              boxShadow: "0 10px 26px -12px hsl(var(--brand-2) / 0.9)",
+            }}
+          >
+            <History className="h-4 w-4" aria-hidden="true" />
           </span>
           Recent extractions
-          <Badge variant="secondary" className="rounded-full">
+          <Badge variant="secondary" className="num rounded-full border-border/60">
             {count}
           </Badge>
         </h2>
@@ -62,68 +71,83 @@ const HistoryPanel: React.FC<Props> = ({ onRestore }) => {
             clear();
             toast.success("History cleared");
           }}
-          className="gap-1.5 rounded-xl text-xs text-muted-foreground"
+          className="gap-1.5 rounded-xl text-xs text-muted-foreground transition-colors hover:text-destructive"
         >
-          <Trash2 className="h-3.5 w-3.5" /> Clear all
+          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Clear all
         </Button>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {entries.map((entry) => (
-          <article
-            key={entry.id}
-            className="group flex gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 transition-all hover:border-primary/40 hover:shadow-[0_12px_40px_-16px_rgba(99,91,255,0.5)]"
-          >
-            <button
-              type="button"
-              onClick={() => onRestore(toResult(entry), entry.thumbnail)}
-              className="relative block w-32 shrink-0 overflow-hidden rounded-xl text-left"
-              aria-label={`Reopen transcript for ${entry.title}`}
-            >
-              <img
-                src={entry.thumbnail}
-                alt=""
-                loading="lazy"
-                className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-            </button>
-            <div className="min-w-0 flex-1">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {entries.map((entry, i) => (
+          <Reveal key={entry.id} delay={Math.min(i, 5) * 70} y={18}>
+            <article className="group panel flex gap-3 p-3 transition-all duration-500 ease-cinematic hover:-translate-y-0.5 hover:border-primary/40">
               <button
                 type="button"
                 onClick={() => onRestore(toResult(entry), entry.thumbnail)}
-                className="block w-full text-left"
+                className="relative block w-32 shrink-0 overflow-hidden rounded-xl text-left"
+                aria-label={`Reopen transcript for ${entry.title}`}
               >
-                <h3 className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary">
-                  {entry.title}
-                </h3>
+                <img
+                  src={entry.thumbnail}
+                  alt=""
+                  loading="lazy"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.src !== POSTER_FALLBACK) img.src = POSTER_FALLBACK;
+                  }}
+                  className="aspect-video w-full object-cover transition-transform duration-700 ease-cinematic group-hover:scale-110"
+                />
+                <span
+                  className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, transparent 40%, hsl(var(--brand-2) / 0.5))",
+                  }}
+                  aria-hidden="true"
+                />
               </button>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{entry.author}</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.7rem] text-muted-foreground">
-                <span className="inline-flex items-center gap-1">
-                  <FileText className="h-3 w-3" /> {formatCount(entry.wordCount)} words
-                </span>
-                <span>{entry.languageName}</span>
-                <span className="inline-flex items-center gap-1">
-                  <Clock3 className="h-3 w-3" /> {timeAgo(entry.createdAt)}
-                </span>
+
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => onRestore(toResult(entry), entry.thumbnail)}
+                  className="block w-full text-left"
+                >
+                  <span className="line-clamp-2 block text-sm font-semibold leading-snug transition-colors group-hover:text-primary">
+                    {entry.title}
+                  </span>
+                </button>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{entry.author}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.68rem] text-muted-foreground">
+                  <span className="num inline-flex items-center gap-1">
+                    <FileText className="h-3 w-3" aria-hidden="true" />
+                    {formatCount(entry.wordCount)} words
+                  </span>
+                  <span>{entry.languageName}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock3 className="h-3 w-3" aria-hidden="true" /> {timeAgo(entry.createdAt)}
+                  </span>
+                </div>
               </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => remove(entry.id)}
-              aria-label={`Remove ${entry.title} from history`}
-              className="h-8 w-8 shrink-0 self-start rounded-lg text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus:opacity-100"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </article>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => remove(entry.id)}
+                aria-label={`Remove ${entry.title} from history`}
+                className="h-8 w-8 shrink-0 self-start rounded-lg text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            </article>
+          </Reveal>
         ))}
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        History lives only in this browser — clearing site data removes it. Nothing is uploaded.
+
+      <p className="font-mono-label mt-4 text-[0.62rem] uppercase tracking-[0.14em] text-muted-foreground">
+        Stored in this browser only — nothing is uploaded
       </p>
-    </section>
+    </Reveal>
   );
 };
 

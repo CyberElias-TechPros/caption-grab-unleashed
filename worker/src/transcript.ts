@@ -106,16 +106,45 @@ export function parseVtt(vtt: string): TranscriptSegment[] {
   return segments;
 }
 
+export interface SelectTrackOptions {
+  /**
+   * Allow falling back to another track + machine translation when the
+   * requested language is missing. When `false`, a missing language is a hard
+   * error instead of a silent substitution. Defaults to `true`.
+   */
+  allowTranslate?: boolean;
+}
+
+export class LanguageUnavailableError extends Error {
+  available: string[];
+  constructor(requestedLang: string, available: string[]) {
+    super(
+      `No ${requestedLang} captions on this video, and auto-translate is turned off.`,
+    );
+    this.name = "LanguageUnavailableError";
+    this.available = available;
+  }
+}
+
 export function selectTrack(
   tracks: ResolvedTrack[],
   requestedLang: string,
+  options: SelectTrackOptions = {},
 ): { track: ResolvedTrack; servedLang: string; translated: boolean } {
+  const allowTranslate = options.allowTranslate !== false;
   const base = requestedLang.split("-")[0].toLowerCase();
   const exact =
     tracks.find((t) => t.languageCode.toLowerCase() === requestedLang.toLowerCase()) ||
     tracks.find((t) => t.languageCode.toLowerCase().split(/[-_]/)[0] === base);
 
   if (exact) return { track: exact, servedLang: exact.languageCode, translated: false };
+
+  if (!allowTranslate) {
+    throw new LanguageUnavailableError(
+      requestedLang,
+      tracks.map((t) => t.languageCode),
+    );
+  }
 
   const manual = tracks.filter((t) => t.kind === "manual");
   const fallback =
