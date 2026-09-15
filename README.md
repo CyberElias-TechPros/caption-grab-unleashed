@@ -11,7 +11,8 @@ export** (TXT, SRT, VTT, JSON). Free forever, no sign-up, no API keys.
 - **True timestamps** — click any line to jump the video to that moment
 - **In-transcript search** with match highlighting and counts
 - **Export anywhere** — plain text, timestamped text, SubRip (`.srt`), WebVTT (`.vtt`), JSON
-- **170+ languages** — every caption track listed, with smart auto-translate fallback
+- **170+ languages** — every caption track listed, with smart auto-translate fallback you can
+  switch off (then a missing language is a clear error, not a silent substitution)
 - **Read & watch together** — side-by-side player plus a distraction-free reading mode
 - **Private local history** — reopen past extractions offline; nothing ever leaves your browser
 - **Dark / light themes**, fully responsive, keyboard- and screen-reader-friendly
@@ -49,15 +50,21 @@ Cloudflare Worker API  (worker/, edge-cached, rate-limited, zero secrets)
 # 1. Install frontend dependencies
 npm install
 
-# 2. Start the Worker API (http://127.0.0.1:8787)
-npm run worker:dev
-
-# 3. In another terminal, start the frontend (http://localhost:8080)
+# 2. Start the frontend (http://localhost:8080)
 npm run dev
+
+# 3. Optional — start the real Worker API in a second terminal (http://127.0.0.1:8787)
+npm run worker:dev
 ```
 
-The Vite dev server proxies `/api/*` to the Worker automatically — no env vars needed. Copy
-[`.env.example`](.env.example) to `.env` only if you want to point at a deployed Worker instead.
+`/api/*` is served by the real Worker whenever it is running. If it is not reachable, the dev
+server answers from a bundled **offline demo library** (`dev/demoLibrary.ts`) so every path in the
+UI still works with no Cloudflare account and no network access to YouTube. Those responses are
+flagged `demo: true`, the header shows a **Demo mode** status dot, and the transcript is labelled —
+nothing is passed off as live data. The demo path still runs the production transcript code
+(`worker/src/transcript.ts`: track selection, translate fallback, json3 parsing).
+
+Copy [`.env.example`](.env.example) to `.env` only if you want to point at a deployed Worker.
 
 ## 🧪 Checks
 
@@ -83,17 +90,28 @@ Full walkthrough: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 ```
 ├── src/
 │   ├── components/        # Extractor, CaptionDisplay, HistoryPanel, Header/Footer, landing/*
-│   ├── contexts/          # SettingsContext (local preferences, no secrets)
-│   ├── hooks/             # useCaptionHistory, useReveal, use-mobile, use-toast
-│   ├── lib/               # api.ts (typed client) · youtube.ts (URL parsing) · format.ts (exporters)
+│   │   └── motion/        # Reveal · Magnetic · Spotlight · CountUp · Marquee · ScrollRail
+│   ├── contexts/          # SettingsContext · HistoryContext (shared local state)
+│   ├── hooks/             # use-mobile, use-toast
+│   ├── lib/               # api.ts · youtube.ts · format.ts · motion.ts (motion toolkit)
 │   ├── pages/             # Index, About, Privacy, Terms, NotFound
 │   └── config/apiConfig.ts
 ├── worker/src/index.ts    # Cloudflare Worker API (video + transcript routes)
-├── worker/wrangler.toml   # Worker config (no bindings/secrets required)
+├── worker/src/transcript.ts  # Pure parsers + track selection (unit-tested)
+├── vite/devApi.ts         # DEV ONLY: /api proxy → Worker, else offline demo fallback
+├── dev/demoLibrary.ts     # DEV ONLY: demo scripts emitted as real json3 timedtext
 ├── docs/                  # ARCHITECTURE.md · DEPLOYMENT.md
 ├── vercel.json            # Rewrites (/api → Worker, SPA fallback) + security headers
-└── public/                # favicon, og-image, sitemap.xml, robots.txt
+└── public/                # favicon, og-image, poster fallback, sitemap, robots
 ```
+
+## 🔌 API contract
+
+| Route | Params | Notes |
+|---|---|---|
+| `GET /api/health` | — | `{ ok, demo?, degraded? }` — drives the header status dot |
+| `GET /api/video` | `id` | Metadata + every caption track |
+| `GET /api/transcript` | `id`, `lang`, `translate` | `translate=0` makes a missing language a `404 LANGUAGE_UNAVAILABLE` instead of silently serving another track; `translate=1` (default) falls back to English + machine translation |
 
 ## 🔒 Security & privacy
 

@@ -1,7 +1,5 @@
 import React from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import BackgroundFX from "@/components/BackgroundFX";
+import LegalPage from "@/components/LegalPage";
 
 const SECTIONS: Array<{ title: string; body: string[] }> = [
   {
@@ -45,29 +43,13 @@ const SECTIONS: Array<{ title: string; body: string[] }> = [
 ];
 
 const Terms: React.FC = () => (
-  <div className="flex min-h-screen flex-col">
-    <BackgroundFX />
-    <Header />
-    <main className="container max-w-3xl flex-1 py-14">
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Legal</p>
-      <h1 className="mt-3 font-display text-4xl font-bold tracking-tight">Terms of Service</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Last updated: September 2026</p>
-
-      <div className="mt-8 space-y-8">
-        {SECTIONS.map((s) => (
-          <section key={s.title}>
-            <h2 className="font-display text-xl font-bold">{s.title}</h2>
-            {s.body.map((p, i) => (
-              <p key={i} className="mt-2.5 leading-relaxed text-muted-foreground">
-                {p}
-              </p>
-            ))}
-          </section>
-        ))}
-      </div>
-    </main>
-    <Footer />
-  </div>
+  <LegalPage
+    eyebrow="Legal"
+    title="Terms of Service"
+    updated="September 2026"
+    intro={'These terms cover a free, open-source tool. Read them if you plan to build on top of it or republish what it gives you.'}
+    sections={SECTIONS}
+  />
 );
 
 export default Terms;

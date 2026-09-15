@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CaptionGrab — Free YouTube Transcript & Caption Extractor</title>
+    <title>CaptionGrab — Free YouTube Transcript &amp; Caption Extractor</title>
     <meta
       name="description"
       content="Extract transcripts and captions from any YouTube video in seconds. Free, no sign-up, with timestamps, search, and SRT/VTT/TXT export."
     />
     <meta name="author" content="CaptionGrab" />
-    <meta name="theme-color" content="#070a18" />
+    <meta name="theme-color" content="#05060f" />
+    <meta name="color-scheme" content="dark light" />
     <link rel="canonical" href="https://captiongrab.app/" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -33,7 +34,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
 
@@ -48,10 +49,82 @@
         "description": "Free YouTube transcript and caption extractor with timestamps, search and SRT/VTT/TXT export."
       }
     </script>
+
+    <!-- Boot title card. Removed by src/main.tsx once React has painted. -->
+    <style>
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background: #05060f;
+        transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.6s;
+      }
+      #boot.is-done {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #boot .boot-mark {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      #boot .boot-glyph {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        background: linear-gradient(135deg, #635bff, #8b3dff 55%, #e13da0);
+        box-shadow: 0 0 44px -6px rgba(139, 61, 255, 0.75);
+        animation: boot-pulse 1.5s ease-in-out infinite;
+      }
+      #boot .boot-bar {
+        width: 132px;
+        height: 2px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+      }
+      #boot .boot-bar::after {
+        content: "";
+        display: block;
+        height: 100%;
+        width: 40%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #635bff, #e13da0);
+        animation: boot-slide 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+      #boot .boot-label {
+        font: 500 10px/1 ui-monospace, "JetBrains Mono", monospace;
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: rgba(226, 228, 255, 0.42);
+      }
+      @keyframes boot-pulse {
+        0%, 100% { transform: scale(1); opacity: 0.92; }
+        50% { transform: scale(1.09); opacity: 1; }
+      }
+      @keyframes boot-slide {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(320%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot .boot-glyph, #boot .boot-bar::after { animation: none; }
+      }
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
+    <div id="boot" role="status" aria-label="Loading CaptionGrab">
+      <div class="boot-mark">
+        <span class="boot-glyph"></span>
+        <span class="boot-bar"></span>
+        <span class="boot-label">CaptionGrab</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
