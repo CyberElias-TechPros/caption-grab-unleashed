@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "${API_WORKER_URL}/api/:path*"
+      "destination": "https://captiongrab-api.cyber-e54.workers.dev/api/:path*"
     },
     {
       "source": "/:path((?!api/).*)",
