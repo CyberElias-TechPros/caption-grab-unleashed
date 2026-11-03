@@ -113,25 +113,36 @@ function apiError(
   return json({ error: { code, message, ...(details ? { details } : {}) } }, status, cors);
 }
 
+/**
+ * Requests that carry no browser `Origin` header — the native Android app, curl,
+ * server-to-server probes — are not subject to CORS at all. They must never be
+ * answered with an allow-list origin, or a strict configuration would look like
+ * a broken API to the app.
+ */
 function corsHeaders(req: Request, env: Env): Record<string, string> {
   const allowList = (env.ALLOWED_ORIGINS || "*")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   const origin = req.headers.get("origin") || "";
-  const allowOrigin =
-    allowList.includes("*") || allowList.length === 0
-      ? "*"
-      : allowList.includes(origin)
-        ? origin
-        : allowList[0];
+  const wildcard = allowList.includes("*") || allowList.length === 0;
 
-  return {
-    "access-control-allow-origin": allowOrigin,
+  const allowOrigin = wildcard
+    ? "*"
+    : origin && allowList.includes(origin)
+      ? origin
+      : origin
+        ? allowList[0]
+        : ""; // no Origin → no CORS headers needed (native clients, curl)
+
+  const headers: Record<string, string> = {
     "access-control-allow-methods": "GET, OPTIONS",
     "access-control-allow-headers": "content-type",
     "access-control-max-age": "86400",
+    vary: "origin",
   };
+  if (allowOrigin) headers["access-control-allow-origin"] = allowOrigin;
+  return headers;
 }
 
 function normalizeLang(lang: string | null): string {

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_indigo">#FF7C6BFF</color>
+    <color name="brand_magenta">#FFFA6FB0</color>
+    <color name="brand_cyan">#FF3BD6F5</color>
+    <color name="ink">#FF07070F</color>
+    <color name="window_background_light">#FFF7F7FC</color>
+    <color name="window_background_dark">#FF07070F</color>
+    <color name="transparent">#00000000</color>
+</resources>

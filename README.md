@@ -1,5 +1,10 @@
 # CaptionGrab — Free YouTube Transcript & Caption Extractor
 
+> **📱 There is now a native Android app.** Kotlin + Jetpack Compose, no WebView,
+> no embedded browser — see [`android/`](android/) and
+> [`docs/ANDROID.md`](docs/ANDROID.md). The web app below still runs from the
+> same API.
+
 Paste any YouTube link and get a clean, timestamped transcript you can **search, read, copy and
 export** (TXT, SRT, VTT, JSON). Free forever, no sign-up, no API keys.
 
@@ -20,27 +25,54 @@ export** (TXT, SRT, VTT, JSON). Free forever, no sign-up, no API keys.
 ## 🏗️ Architecture
 
 ```
-Browser (React + Vite + Tailwind, deployed on Vercel)
-        │  GET /api/video?id=…  ·  GET /api/transcript?id=…&lang=…
-        ▼
-Cloudflare Worker API  (worker/, edge-cached, rate-limited, zero secrets)
-        │  Innertube player API + timedtext (server-side, no CORS issues)
-        ▼
-      YouTube
+Android app (Kotlin · Compose · Material 3)      Browser (React + Vite · Vercel)
+        │                                                   │
+        └───────────────►  GET /api/video  ·  GET /api/transcript  ◄──┘
+                                   ▼
+                Cloudflare Worker API  (worker/, edge-cached,
+                                        rate-limited, zero secrets)
+                                   │  Innertube player API + timedtext
+                                   ▼
+                                YouTube
 ```
+
+The Android client talks to the same Worker, but everything the user feels —
+reading, search, export, sharing, the offline library — runs on the device.
 
 | Concern | Choice | Why |
 |---|---|---|
+| Android app | **Kotlin 2.0 · Jetpack Compose · Material 3 · DataStore · OkHttp** | Native performance and platform integration (share sheet, Downloads, YouTube handoff) with no WebView |
 | Frontend | React 18, Vite, Tailwind, shadcn/ui → **Vercel** | Fast, typed, accessible component base |
 | API | **Cloudflare Workers** | Server-side transcript fetch (browsers are CORS-blocked), edge cache, no servers to run |
 | Secrets | None required | No YouTube Data API key, no OAuth, nothing to leak |
-| Storage | Browser `localStorage` only | History & settings stay on-device; no database needed |
+| Storage | Device only (DataStore + files on Android, `localStorage` on web) | History & settings stay on-device; no database, no accounts |
 
 > **Why does a backend exist at all?** Browsers cannot fetch YouTube transcripts directly
 > (CORS), and the YouTube Data API's `captions.download` endpoint requires OAuth — an API key
 > alone can never download captions. The Worker resolves caption tracks and downloads
 > transcripts server-side, which is the only architecture that actually works. See
 > [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## 📱 Android app
+
+```bash
+cd android
+./gradlew :app:assembleDebug     # → app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:testDebugUnitTest # 60+ JVM unit tests, no device required
+```
+
+Native Kotlin + Compose (Material 3) throughout — no WebView, no Capacitor.
+Highlights built for phones:
+
+- **Share straight from YouTube** into CaptionGrab (share sheet + "open with" links)
+- **Tap any timecode** to open the YouTube app at that exact second
+- **Offline library** of every capture, searchable, star-able, with cached thumbnails
+- **Seven export formats** saved to `Downloads/CaptionGrab/` or shared as a file
+- **Reader controls** for text size (Compact→Huge), theme, haptics, keep-awake
+- Zero permissions beyond `INTERNET`
+
+Requires JDK 17 + Android SDK 34. Full guide, architecture notes, store checklist:
+**[docs/ANDROID.md](docs/ANDROID.md)**.
 
 ## 🚀 Quick start
 
@@ -73,6 +105,8 @@ npm run typecheck   # TypeScript project references
 npm run lint        # ESLint
 npm run test        # Vitest unit tests (URL parsing, formatters, exporters)
 npm run build       # Production frontend build → dist/
+
+cd android && ./gradlew :app:testDebugUnitTest   # Android unit tests
 ```
 
 ## ☁️ Deployment
@@ -88,6 +122,12 @@ Full walkthrough: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 ## 📁 Repository map
 
 ```
+├── android/               # 📱 native app — Kotlin + Compose (see docs/ANDROID.md)
+│   ├── app/src/main/java/com/captiongrab/app/
+│   │   ├── data/          # models · url parsing · exporters · API client · storage
+│   │   ├── platform/      # clipboard, share, MediaStore export, YouTube handoff
+│   │   └── ui/            # theme · components · screens · AppViewModel
+│   └── app/src/test/      # 60+ JVM unit tests
 ├── src/
 │   ├── components/        # Extractor, CaptionDisplay, HistoryPanel, Header/Footer, landing/*
 │   │   └── motion/        # Reveal · Magnetic · Spotlight · CountUp · Marquee · ScrollRail
