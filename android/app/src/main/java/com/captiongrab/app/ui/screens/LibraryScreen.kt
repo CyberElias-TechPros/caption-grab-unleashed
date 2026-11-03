@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteSweep
@@ -76,6 +77,7 @@ fun LibraryScreen(
 ) {
     val c = CaptionTheme.colors
     val entries by vm.entries.collectAsStateWithLifecycle()
+    val settings by vm.settings.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     var confirmClear by remember { mutableStateOf(false) }
 
@@ -144,26 +146,49 @@ fun LibraryScreen(
         Spacer(Modifier.height(8.dp))
 
         if (entries.isEmpty()) {
-            EmptyState(
-                icon = Icons.Rounded.FolderOpen,
-                title = "Nothing saved yet",
-                body = "Grab a transcript and it lands here automatically — readable offline, " +
-                    "searchable, and exportable whenever you need it.",
-                action = {
-                    Row(
-                        Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(c.primary.copy(alpha = 0.14f))
-                            .clickable(onClick = onBrowse)
-                            .padding(horizontal = 18.dp, vertical = 11.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Rounded.ContentPaste, contentDescription = null, tint = c.primary, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(7.dp))
-                        Text("Grab your first transcript", color = c.primary, style = MaterialTheme.typography.labelLarge)
-                    }
-                },
-            )
+            if (settings.historyEnabled) {
+                EmptyState(
+                    icon = Icons.Rounded.FolderOpen,
+                    title = "Nothing saved yet",
+                    body = "Grab a transcript and it lands here automatically — readable offline, " +
+                        "searchable, and exportable whenever you need it.",
+                    action = {
+                        Row(
+                            Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(c.primary.copy(alpha = 0.14f))
+                                .clickable(onClick = onBrowse)
+                                .padding(horizontal = 18.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Rounded.ContentPaste, contentDescription = null, tint = c.primary, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text("Grab your first transcript", color = c.primary, style = MaterialTheme.typography.labelLarge)
+                        }
+                    },
+                )
+            } else {
+                EmptyState(
+                    icon = Icons.Rounded.CloudOff,
+                    title = "Saving is turned off",
+                    body = "New grabs work exactly as before, they just aren't kept on this device. " +
+                        "Turn saving back on in Settings → Library to build your offline collection.",
+                    action = {
+                        Row(
+                            Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(c.primary.copy(alpha = 0.14f))
+                                .clickable { vm.updateSettings { it.copy(historyEnabled = true) } }
+                                .padding(horizontal = 18.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Rounded.FolderOpen, contentDescription = null, tint = c.primary, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text("Turn saving on", color = c.primary, style = MaterialTheme.typography.labelLarge)
+                        }
+                    },
+                )
+            }
         } else {
             LazyColumn(
                 Modifier.fillMaxSize(),

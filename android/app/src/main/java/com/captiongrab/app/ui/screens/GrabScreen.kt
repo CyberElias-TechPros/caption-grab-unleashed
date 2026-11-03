@@ -40,6 +40,7 @@ import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.OfflineBolt
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Verified
@@ -110,6 +111,7 @@ fun GrabScreen(
     val c = CaptionTheme.colors
     val detectedId = remember(url) { YouTubeUrl.extractVideoId(url) }
     val savedEntries by vm.entries.collectAsStateWithLifecycle()
+    val online by vm.services.online.collectAsStateWithLifecycle()
     val scroll = rememberScrollState()
 
     val busy = extraction is Extraction.Resolving || extraction is Extraction.Working
@@ -138,6 +140,27 @@ fun GrabScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = c.textMuted,
             )
+        }
+
+        // Offline is a state, not an error: say exactly what still works.
+        AnimatedVisibility(visible = !online) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(c.amber.copy(alpha = 0.12f))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.OfflineBolt, contentDescription = null, tint = c.amber, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "You're offline. New grabs need a connection — captures you already saved still open.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.amber,
+                )
+            }
         }
 
         Spacer(Modifier.height(18.dp))
@@ -197,20 +220,19 @@ fun GrabScreen(
                     },
                     trailingIcon = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (url.isNotEmpty()) {
-                                Icon(
-                                    Icons.Rounded.ContentPaste,
-                                    contentDescription = "Paste from clipboard",
-                                    tint = c.primary,
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable {
-                                            vm.services.readClipboard()?.let { onUrlChange(it) }
-                                        }
-                                        .padding(6.dp),
-                                )
-                            }
+                            // Always available: pasting a link is the primary gesture.
+                            Icon(
+                                Icons.Rounded.ContentPaste,
+                                contentDescription = "Paste from clipboard",
+                                tint = c.primary,
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        vm.services.readClipboard()?.let { onUrlChange(it) }
+                                    }
+                                    .padding(6.dp),
+                            )
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
@@ -238,6 +260,7 @@ fun GrabScreen(
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            // RowScope here, so weight() is valid.
                             Icon(Icons.Rounded.ContentPaste, contentDescription = null, tint = c.primary, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
@@ -310,6 +333,7 @@ fun GrabScreen(
                     .padding(horizontal = 14.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // RowScope: weight() below distributes the remaining width.
                 Icon(Icons.Rounded.Verified, contentDescription = null, tint = c.cyan, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(9.dp))
                 Text(
