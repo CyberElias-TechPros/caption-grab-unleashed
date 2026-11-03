@@ -64,6 +64,21 @@ allow-list origin. See `corsHeaders()` in [`worker/src/index.ts`](../worker/src/
 | **Settings** | DataStore: preferred caption language (29 quick picks), smart auto-translate, text size (Compact→Huge), theme (System/Dark/Light), default export, haptics, keep-screen-awake, attribution, YouTube-app vs browser |
 | **Status** | Live Worker health chip with recheck; offline banners that make clear saved captures still open |
 | **Accessibility** | Content descriptions on every icon action, 44–48dp targets, system font-scale respected and *multiplied* (never overridden), RTL-safe layouts |
+| **Clipboard awareness** | On the Grab screen the app quietly checks whether the clipboard holds a YouTube link and offers a one-tap "use it" row |
+| **Word-level follow-along** | Tapping a timecode marks that line in the reader (colour + background), so the eye keeps its place after the app switches to YouTube and back |
+
+### What the app deliberately does *not* do
+
+* **No WebView.** Not for the player, not for legal pages, not for "just this
+  one screen". Old web views are the most common source of Play Store policy
+  rejections (misleading-device-behaviour, data-safety mismatches, stale security
+  patches), and an embedded browser would also break the promise that nothing on
+  the device talks to third parties.
+* **No background workers or scheduled jobs.** Everything is foreground and
+  user-initiated, so the app has no reason to wake your phone.
+* **No analytics SDK, no crash reporting SDK, no ad SDK.** Dependencies are
+  Compose, AndroidX, OkHttp, Coil and Kotlin — nothing that phones home.
+* **No account.** There is nothing to sign into, and nothing to leak.
 
 ## 3. Design intent — meet the user where they are
 
@@ -130,6 +145,23 @@ Override it without touching source, in priority order:
 
 The value is exposed as `BuildConfig.API_BASE_URL` and shown in Settings → About,
 so a misconfigured build is diagnosable from inside the app.
+
+### Verification status
+
+This repository can be built end-to-end, but note what was and was not executed
+where this app was authored:
+
+| Step | Status |
+|---|---|
+| `npx tsc -b` (web + Worker) | ✅ run, clean |
+| `npx vitest run worker/src/transcript.test.ts` | ✅ run, 17/17 passed |
+| Android unit tests `./gradlew :app:testDebugUnitTest` | ⚠️ not executed here — the sandbox has no JDK/Android SDK. The suites are written against pure-JVM APIs only (JUnit 4 + `kotlinx-coroutines-test` + OkHttp's interceptor API), so they run on any machine with a JDK. |
+| `./gradlew :app:assembleDebug` | ⚠️ not executed here, same reason. |
+
+If anything fails to compile on your machine, the most likely culprits are
+dependency versions (they are all pinned in
+[`gradle/libs.versions.toml`](../android/gradle/libs.versions.toml)) and the
+Gradle/JDK pair (Gradle 8.9 requires JDK 17+; JDK 21 works too).
 
 ## 6. Testing
 
