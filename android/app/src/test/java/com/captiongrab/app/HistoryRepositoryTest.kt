@@ -203,4 +203,33 @@ class HistoryRepositoryTest {
         assertFalse(restored.text.isBlank())
         assertEquals(longTranscript.text, restored.text)
     }
+
+    @Test
+    fun `a capture saved at the limit is never the one dropped`() = runTest {
+        var now = 1_000L
+        val repository = repo { now }
+        repository.load()
+        repeat(2) { index ->
+            now += 1000
+            repository.save(transcript(id = "existing000$index", title = "old $index"), "t", limit = 2)
+        }
+        now += 1000
+        repository.save(transcript(id = "newestvideo1", title = "newest"), "t", limit = 2)
+        assertTrue(repository.entries.value.any { it.title == "newest" })
+        assertEquals(2, repository.entries.value.size)
+    }
+
+    @Test
+    fun `a corrupt index is rebuilt from the entry files`() = runTest {
+        val repository = repo()
+        repository.load()
+        repository.save(transcript(title = "survivor"), "t", limit = 10)
+
+        File(dir, "index.json").writeText("corrupted!!")
+
+        val recovered = repo()
+        recovered.load()
+        assertEquals(1, recovered.entries.value.size)
+        assertEquals("survivor", recovered.entries.value.first().title)
+    }
 }

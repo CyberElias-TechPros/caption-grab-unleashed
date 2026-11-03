@@ -59,11 +59,15 @@ class HistoryRepository(
     suspend fun load() = withContext(io) {
         mutex.withLock {
             dir.mkdirs()
-            val loaded = if (indexFile.exists()) {
-                runCatching { json.decodeFromString<List<HistoryEntry>>(indexFile.readText()) }
-                    .getOrElse { emptyList() }
-            } else emptyList()
-            _entries.value = sort(loaded.filter { it.segments.isNotEmpty() })
+            val fromIndex = if (indexFile.exists()) {
+                runCatching { json.decodeFromString<List<HistoryEntry>>(indexFile.readText()) }.getOrNull()
+            } else {
+                emptyList()
+            }
+            val loaded = fromIndex ?: rebuildFromFiles()
+            val usable = loaded.filter { it.segments.isNotEmpty() }
+            _entries.value = sort(usable)
+            if (fromIndex == null && usable.isNotEmpty()) persistIndex(usable)
         }
     }
 
@@ -92,8 +96,11 @@ class HistoryRepository(
 
             var next = (listOf(entry) + _entries.value.filterNot { it.id == entry.id })
             if (next.size > limit) {
-                val keep = next.filter { it.pinned }.take(limit)
-                val others = next.filterNot { it.pinned }.take(maxOf(0, limit - keep.size))
+                // The capture just saved is always kept; starred ones are kept
+                // next; only then does age decide what falls off.
+                val keep = next.filter { it.pinned || it.id == entry.id }.take(limit)
+                val others = next.filterNot { it.pinned || it.id == entry.id }
+                    .take(maxOf(0, limit - keep.size))
                 val dropped = next - keep.toSet() - others.toSet()
                 dropped.forEach { runCatching { entryFile(it.id).delete() } }
                 next = (keep + others).sortedByDescending { it.createdAt }
@@ -198,6 +205,17 @@ class HistoryRepository(
     /* ------------------------------------------------------------------ */
     /* internals                                                           */
     /* ------------------------------------------------------------------ */
+
+    /**
+     * Recover the library when `index.json` is missing or corrupt: every entry
+     * file is self-contained, so the index is just a cache of them.
+     */
+    private fun rebuildFromFiles(): List<HistoryEntry> {
+        val files = dir.listFiles { file -> file.isFile && file.name.startsWith("entry-") } ?: return emptyList()
+        return files.mapNotNull { file ->
+            runCatching { json.decodeFromString(HistoryEntry.serializer(), file.readText()) }.getOrNull()
+        }.filter { it.segments.isNotEmpty() }
+    }
 
     private fun persistIndex(entries: List<HistoryEntry>) {
         runCatching {
