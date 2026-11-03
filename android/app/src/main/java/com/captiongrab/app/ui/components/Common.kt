@@ -220,8 +220,10 @@ fun PrimaryButton(
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.975f else 1f, label = "press")
     val alpha by animateFloatAsState(if (enabled) 1f else 0.45f, label = "enabled")
+    // NOTE: the caller's own modifier (padding/width) is applied *outside* this
+    // box, so the press-scale animation always matches the button's real size.
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .height(height)
             .alpha(alpha)
@@ -265,12 +267,13 @@ fun GhostButton(
 ) {
     val c = CaptionTheme.colors
     Box(
-        modifier = modifier
+        modifier = Modifier
             .height(height)
             .clip(RoundedCornerShape(16.dp))
             .background(c.surfaceHigh.copy(alpha = if (c.isDark) 0.85f else 1f))
             .border(1.dp, c.border, RoundedCornerShape(16.dp))
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .then(modifier)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -295,11 +298,12 @@ fun IconPill(
     size: Dp = 44.dp,
 ) {
     Box(
-        modifier = modifier
+        modifier = Modifier
             .size(size)
             .clip(CircleShape)
             .background(background)
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick)
+            .then(modifier),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(size * 0.44f))

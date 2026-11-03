@@ -183,14 +183,17 @@ private fun ReadyContent(
                 onClick = { vm.setTranscriptView(TranscriptView.PARAGRAPHS) },
             )
             Spacer(Modifier.weight(1f))
-            IconPill(
-                icon = if (query.isBlank()) Icons.Rounded.ContentCopy else Icons.Rounded.ContentCopy,
-                contentDescription = "Copy whole transcript",
-                onClick = { onCopy(transcript, false) },
-                size = 38.dp,
-                tint = c.textMuted,
-                background = c.surfaceHigh.copy(alpha = 0.6f),
-            )
+            // Quick copy of the whole transcript (the dock below has the full actions).
+            Box(Modifier.padding(end = 2.dp)) {
+                IconPill(
+                    icon = Icons.Rounded.ContentCopy,
+                    contentDescription = "Copy whole transcript",
+                    onClick = { onCopy(transcript, false) },
+                    size = 38.dp,
+                    tint = c.textMuted,
+                    background = c.surfaceHigh.copy(alpha = 0.6f),
+                )
+            }
         }
 
         Spacer(Modifier.height(10.dp))
