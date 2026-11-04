@@ -28,3 +28,22 @@ dist-ssr
 
 # Wrangler local state
 .wrangler/
+
+# ── Android (native app in ./android) ─────────────────────────────────────
+android/.gradle/
+android/local.properties
+android/build/
+android/app/build/
+android/.idea/
+android/.kotlin/
+android/captures/
+android/app/release/
+*.apk
+*.aab
+*.keystore
+*.jks
+android/keystore.properties
+
+# Per-package lockfile: the repo is pinned at the root (bun.lockb + package-lock.json)
+worker/package-lock.json
+

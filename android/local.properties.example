@@ -1,0 +1,9 @@
+# Local build overrides for the CaptionGrab Android app.
+# Copy to `local.properties` (git-ignored) and edit.
+#
+# 1. Point the app at your own Worker:
+#      api.base.url=https://your-worker.workers.dev
+#
+# 2. Standard Android SDK location (Android Studio writes this for you):
+#      sdk.dir=/Users/you/Library/Android/sdk
+#      sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
