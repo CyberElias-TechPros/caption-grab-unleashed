@@ -43,3 +43,7 @@ android/app/release/
 *.keystore
 *.jks
 android/keystore.properties
+
+# Per-package lockfile: the repo is pinned at the root (bun.lockb + package-lock.json)
+worker/package-lock.json
+
